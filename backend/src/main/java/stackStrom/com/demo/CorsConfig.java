@@ -5,9 +5,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
-/**
- * Global CORS configuration — allows React frontend (localhost:3000) to call the backend.
- */
 @Configuration
 public class CorsConfig {
 

@@ -23,10 +23,8 @@ public class AuthService {
     @Autowired
     private JwtUtils jwtUtil;
 
-    // ── REGISTER ──────────────────────────────────────────────────────────────
     public AuthDtos.AuthResponse register(AuthDtos.RegisterRequest request) {
 
-        // Validate fields
         if (request.getName() == null || request.getName().isBlank()) {
             throw new InvalidOrderException("Name is required.");
         }
@@ -37,21 +35,18 @@ public class AuthService {
             throw new InvalidOrderException("Password must be at least 6 characters.");
         }
 
-        // Check email uniqueness
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new InvalidOrderException("Email already registered: " + request.getEmail());
         }
 
-        // Build user — role is always USER on self-registration
         User user = new User();
         user.setName(request.getName());
         user.setEmail(request.getEmail());
-        user.setPassword(passwordEncoder.encode(request.getPassword())); // BCrypt hash
-        user.setRole("USER"); // hardcoded — cannot register as ADMIN
+        user.setPassword(passwordEncoder.encode(request.getPassword()));
+        user.setRole("USER"); 
 
         User saved = userRepository.save(user);
 
-        // Generate JWT
         String token = jwtUtil.generateToken(saved.getId(), saved.getEmail(), saved.getRole());
 
         return new AuthDtos.AuthResponse(
@@ -62,10 +57,8 @@ public class AuthService {
                 saved.getRole());
     }
 
-    // ── LOGIN ─────────────────────────────────────────────────────────────────
     public AuthDtos.AuthResponse login(AuthDtos.LoginRequest request) {
 
-        // Find user by email
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new InvalidOrderException("Invalid email or password."));
 
@@ -73,7 +66,6 @@ public class AuthService {
             throw new InvalidOrderException("Invalid email or password.");
         }
 
-        // Generate JWT with userId and role
         String token = jwtUtil.generateToken(user.getId(), user.getEmail(), user.getRole());
 
         return new AuthDtos.AuthResponse(
@@ -103,7 +95,6 @@ public class AuthService {
             return passwordEncoder.matches(rawPassword, storedPassword);
         }
 
-        // Legacy fallback for plain-text seeded/admin passwords.
         if (storedPassword != null && storedPassword.equals(rawPassword)) {
             user.setPassword(passwordEncoder.encode(rawPassword));
             userRepository.save(user);

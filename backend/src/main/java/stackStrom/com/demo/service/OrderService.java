@@ -46,19 +46,16 @@ public class OrderService {
         String paymentStatus = normalizePaymentStatus(request.getPaymentStatus());
         String paymentSummary = buildPaymentSummary(paymentMethod, paymentStatus, request.getPaymentDetails());
 
-        // 1. Validate: items list must not be empty
         if (request.getItems() == null || request.getItems().isEmpty()) {
             throw new InvalidOrderException("Order must contain at least one item.");
         }
 
-        // 2. Validate: quantities must be positive
         for (OrderRequest.OrderItemRequest itemReq : request.getItems()) {
             if (itemReq.getQuantity() == null || itemReq.getQuantity() <= 0) {
                 throw new InvalidOrderException("Quantity must be greater than 0 for item ID: " + itemReq.getItemId());
             }
         }
 
-        // 3. Validate items exist and check stock
         List<OrderItem> orderItems = new ArrayList<>();
         double totalAmount = 0.0;
 

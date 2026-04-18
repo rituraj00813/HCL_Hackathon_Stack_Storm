@@ -28,15 +28,15 @@ function MenuPage({ user, cart, onAddToCart }) {
     setError("");
 
     const request =
-      selectedCategory === "ALL"
-        ? fetchAllItems()
-        : fetchItemsByCategory(selectedCategory);
+      selectedCategory === "ALL" ? fetchAllItems() : (
+        fetchItemsByCategory(selectedCategory)
+      );
 
     request
       .then((response) => setItems(response.data))
       .catch((requestError) => {
         setError(
-          requestError.response?.data?.message || "Unable to load menu items."
+          requestError.response?.data?.message || "Unable to load menu items.",
         );
       })
       .finally(() => setLoading(false));
@@ -52,6 +52,8 @@ function MenuPage({ user, cart, onAddToCart }) {
       return accumulator;
     }, {});
   }, [cart]);
+
+  const totalCartItems = cart.reduce((sum, entry) => sum + entry.quantity, 0);
 
   const handleAdminSubmit = async (event) => {
     event.preventDefault();
@@ -69,7 +71,7 @@ function MenuPage({ user, cart, onAddToCart }) {
       loadItems(category);
     } catch (requestError) {
       setError(
-        requestError.response?.data?.message || "Unable to add the item."
+        requestError.response?.data?.message || "Unable to add the item.",
       );
     }
   };
@@ -84,7 +86,7 @@ function MenuPage({ user, cart, onAddToCart }) {
       loadItems(category);
     } catch (requestError) {
       setError(
-        requestError.response?.data?.message || "Unable to delete the item."
+        requestError.response?.data?.message || "Unable to delete the item.",
       );
     }
   };
@@ -93,26 +95,95 @@ function MenuPage({ user, cart, onAddToCart }) {
     <section className="stack-lg">
       <div className="hero-card">
         <div>
-          <p className="eyebrow">Authenticated ordering flow</p>
-          <h2>Browse items, add to cart, and place your order with JWT auth.</h2>
+          <p className="eyebrow">Menu page</p>
+          <h2>
+            {user.role === "ADMIN" ?
+              "Control the full catalog from one clean admin workspace."
+            : "Explore the catalog, adjust quantities, and prepare your checkout."
+            }
+          </h2>
+          <p className="muted-text">
+            {user.role === "ADMIN" ?
+              "Use this page to add new menu entries, track stock levels, and remove unavailable products."
+            : "Filter by category, add items instantly, and keep your cart updated in real time."
+            }
+          </p>
+          <div className="hero-actions">
+            <div className="page-badge">
+              <span>Selected category</span>
+              <strong>{category}</strong>
+            </div>
+            <div className="page-badge">
+              <span>
+                {user.role === "ADMIN" ? "Catalog size" : "Cart items"}
+              </span>
+              <strong>
+                {user.role === "ADMIN" ? items.length : totalCartItems}
+              </strong>
+            </div>
+          </div>
         </div>
+
         <div className="hero-meta">
-          <span>{user.email}</span>
-          <strong>{user.role}</strong>
+          <div className="hero-meta-card">
+            <span>Logged in as</span>
+            <strong>{user.name}</strong>
+            <p>{user.email}</p>
+          </div>
+          <div className="hero-meta-card">
+            <span>Role</span>
+            <strong>{user.role}</strong>
+            <p>
+              {user.role === "ADMIN" ?
+                "Menu management enabled"
+              : "Ordering enabled"}
+            </p>
+          </div>
         </div>
       </div>
 
+      {user.role === "USER" && (
+        <section className="section-grid-3">
+          <article className="metric-card">
+            <span>Visible items</span>
+            <strong>{items.length}</strong>
+          </article>
+          <article className="metric-card">
+            <span>Active filter</span>
+            <strong>{category}</strong>
+          </article>
+          <article className="metric-card">
+            <span>Ready for checkout</span>
+            <strong>{totalCartItems}</strong>
+          </article>
+        </section>
+      )}
+
       {user.role === "ADMIN" && (
         <section className="admin-panel">
-          <div>
-            <p className="eyebrow">Admin controls</p>
-            <h3>Manage menu items</h3>
+          <div className="page-header">
+            <div>
+              <p className="eyebrow">Admin controls</p>
+              <h3>Add or remove menu items</h3>
+              <p className="muted-text">
+                Create fresh menu entries with category, price, and stock so the
+                frontend updates from the live API.
+              </p>
+            </div>
+            <div className="page-badge">
+              <span>Current items</span>
+              <strong>{items.length}</strong>
+            </div>
           </div>
+
           <form className="admin-form" onSubmit={handleAdminSubmit}>
             <input
               value={adminForm.name}
               onChange={(event) =>
-                setAdminForm((current) => ({ ...current, name: event.target.value }))
+                setAdminForm((current) => ({
+                  ...current,
+                  name: event.target.value,
+                }))
               }
               placeholder="Item name"
               required
@@ -138,7 +209,10 @@ function MenuPage({ user, cart, onAddToCart }) {
               step="0.01"
               value={adminForm.price}
               onChange={(event) =>
-                setAdminForm((current) => ({ ...current, price: event.target.value }))
+                setAdminForm((current) => ({
+                  ...current,
+                  price: event.target.value,
+                }))
               }
               placeholder="Price"
               required
@@ -148,7 +222,10 @@ function MenuPage({ user, cart, onAddToCart }) {
               min="0"
               value={adminForm.stock}
               onChange={(event) =>
-                setAdminForm((current) => ({ ...current, stock: event.target.value }))
+                setAdminForm((current) => ({
+                  ...current,
+                  stock: event.target.value,
+                }))
               }
               placeholder="Stock"
               required
@@ -157,30 +234,45 @@ function MenuPage({ user, cart, onAddToCart }) {
               Add Item
             </button>
           </form>
+
           {adminMessage && <p className="success-banner">{adminMessage}</p>}
         </section>
       )}
 
-      <div className="filter-row">
-        {CATEGORIES.map((entry) => (
-          <button
-            key={entry}
-            type="button"
-            className={`filter-chip ${category === entry ? "active" : ""}`}
-            onClick={() => setCategory(entry)}
-          >
-            {entry}
-          </button>
-        ))}
-      </div>
+      <section className="section-card stack-md">
+        <div className="page-header">
+          <div>
+            <p className="eyebrow">Category filter</p>
+            <h3>Switch between pizza, drink, and bread items</h3>
+          </div>
+          <div className="page-badge">
+            <span>Results</span>
+            <strong>{items.length}</strong>
+          </div>
+        </div>
+
+        <div className="filter-row">
+          {CATEGORIES.map((entry) => (
+            <button
+              key={entry}
+              type="button"
+              className={`filter-chip ${category === entry ? "active" : ""}`}
+              onClick={() => setCategory(entry)}
+            >
+              {entry}
+            </button>
+          ))}
+        </div>
+      </section>
 
       {error && <p className="error-banner">{error}</p>}
-      {loading ? (
+
+      {loading ?
         <div className="centered-panel">Loading menu...</div>
-      ) : (
-        <div className="item-grid">
+      : <div className="item-grid">
           {items.map((item) => {
             const quantity = cartById[item.id] || 0;
+
             return (
               <article key={item.id} className="item-card">
                 <div className="item-head">
@@ -192,47 +284,51 @@ function MenuPage({ user, cart, onAddToCart }) {
                 </div>
 
                 <p className={item.stock < 5 ? "stock-low" : "stock-ok"}>
-                  Stock: {item.stock}
+                  Stock available: {item.stock}
                 </p>
 
-                <div className="card-actions">
-                  {user.role === "USER" && (
-                    <>
-                      <button
-                        type="button"
-                        className="ghost-btn"
-                        onClick={() => onAddToCart(item, -1)}
-                        disabled={quantity === 0}
-                      >
-                        -
-                      </button>
-                      <span className="qty-pill">{quantity}</span>
-                      <button
-                        type="button"
-                        className="primary-btn"
-                        onClick={() => onAddToCart(item, 1)}
-                        disabled={item.stock === 0 || quantity >= item.stock}
-                      >
-                        Add
-                      </button>
-                    </>
-                  )}
+                <div className="item-foot">
+                  <span className="muted-text">Item ID #{item.id}</span>
 
-                  {user.role === "ADMIN" && (
-                    <button
-                      type="button"
-                      className="danger-btn"
-                      onClick={() => handleDelete(item.id)}
-                    >
-                      Delete
-                    </button>
-                  )}
+                  <div className="card-actions">
+                    {user.role === "USER" && (
+                      <>
+                        <button
+                          type="button"
+                          className="mini-btn"
+                          onClick={() => onAddToCart(item, -1)}
+                          disabled={quantity === 0}
+                        >
+                          -
+                        </button>
+                        <span className="qty-pill">{quantity}</span>
+                        <button
+                          type="button"
+                          className="primary-btn"
+                          onClick={() => onAddToCart(item, 1)}
+                          disabled={item.stock === 0 || quantity >= item.stock}
+                        >
+                          Add
+                        </button>
+                      </>
+                    )}
+
+                    {user.role === "ADMIN" && (
+                      <button
+                        type="button"
+                        className="danger-btn"
+                        onClick={() => handleDelete(item.id)}
+                      >
+                        Delete
+                      </button>
+                    )}
+                  </div>
                 </div>
               </article>
             );
           })}
         </div>
-      )}
+      }
     </section>
   );
 }

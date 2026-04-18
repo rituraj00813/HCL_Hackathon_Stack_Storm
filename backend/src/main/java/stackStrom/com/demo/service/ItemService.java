@@ -10,10 +10,6 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 
-/**
- * Service layer for Item operations.
- * Handles business logic related to menu items.
- */
 @Service
 public class ItemService {
 
