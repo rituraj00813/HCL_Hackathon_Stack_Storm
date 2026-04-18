@@ -91,7 +91,7 @@ The system handles the complete order lifecycle from item browsing to successful
 │    └────┬──────────────────────────────────┬─┘                    │
 │         │                                  │                       │
 │  ┌──────▼──────────────────────────────────▼────┐                 │
-│  │          H2 Database (Embedded)              │                 │
+│  │          MYSQL Database (Embedded)              │                 │
 │  │  ┌────────┐ ┌───────┐ ┌────────┐ ┌────────┐ │                 │
 │  │  │ Users  │ │ Items │ │Orders  │ │OrderItm│ │                 │
 │  │  └────────┘ └───────┘ └────────┘ └────────┘ │                 │
