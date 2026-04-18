@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from "react";
 import "./App.css";
-import CartPage from "./pages/CartPage";
-import LoginPage from "./pages/LoginPage";
-import MenuPage from "./pages/MenuPage";
-import RegisterPage from "./pages/RegisterPage";
-import SuccessPage from "./pages/SuccessPage";
+import CartPage from "./pages/CartPage.jsx";
+import LoginPage from "./pages/LoginPage.jsx";
+import MenuPage from "./pages/MenuPage.jsx";
+import RegisterPage from "./pages/RegisterPage.jsx";
+import SuccessPage from "./pages/SuccessPage.jsx";
 import { fetchAuthSuccess } from "./services/api";
 
 const USER_STORAGE_KEY = "retail-user";
