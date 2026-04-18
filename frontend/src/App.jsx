@@ -1,121 +1,171 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import React, { useEffect, useState } from "react";
+import "./App.css";
+import CartPage from "./pages/CartPage";
+import LoginPage from "./pages/LoginPage";
+import MenuPage from "./pages/MenuPage";
+import RegisterPage from "./pages/RegisterPage";
+import SuccessPage from "./pages/SuccessPage";
+import { fetchAuthSuccess } from "./services/api";
+
+const USER_STORAGE_KEY = "retail-user";
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [page, setPage] = useState("login");
+  const [cart, setCart] = useState([]);
+  const [lastOrder, setLastOrder] = useState(null);
+  const [user, setUser] = useState(() => {
+    const saved = localStorage.getItem(USER_STORAGE_KEY);
+    return saved ? JSON.parse(saved) : null;
+  });
+  const [booting, setBooting] = useState(Boolean(localStorage.getItem("token")));
+
+  useEffect(() => {
+    if (!localStorage.getItem("token")) {
+      setBooting(false);
+      return;
+    }
+
+    fetchAuthSuccess()
+      .then((response) => {
+        const authenticatedUser = response.data;
+        setUser(authenticatedUser);
+        localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(authenticatedUser));
+        setPage("menu");
+      })
+      .catch(() => {
+        localStorage.removeItem("token");
+        localStorage.removeItem(USER_STORAGE_KEY);
+        setUser(null);
+        setPage("login");
+      })
+      .finally(() => setBooting(false));
+  }, []);
+
+  const persistSession = (authResponse) => {
+    localStorage.setItem("token", authResponse.token);
+    const nextUser = {
+      userId: authResponse.userId,
+      name: authResponse.name,
+      email: authResponse.email,
+      role: authResponse.role,
+    };
+    localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(nextUser));
+    setUser(nextUser);
+    setPage("menu");
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem(USER_STORAGE_KEY);
+    setUser(null);
+    setCart([]);
+    setLastOrder(null);
+    setPage("login");
+  };
+
+  const handleAddToCart = (item, delta = 1) => {
+    setCart((current) => {
+      const existing = current.find((entry) => entry.item.id === item.id);
+      if (!existing) {
+        return delta > 0 ? [...current, { item, quantity: delta }] : current;
+      }
+
+      const quantity = existing.quantity + delta;
+      if (quantity <= 0) {
+        return current.filter((entry) => entry.item.id !== item.id);
+      }
+
+      return current.map((entry) =>
+        entry.item.id === item.id ? { ...entry, quantity } : entry
+      );
+    });
+  };
+
+  const handleOrderPlaced = (order) => {
+    setLastOrder(order);
+    setCart([]);
+    setPage("success");
+  };
+
+  if (booting) {
+    return <div className="screen-shell centered-panel">Checking your session...</div>;
+  }
+
+  const cartCount = cart.reduce((sum, entry) => sum + entry.quantity, 0);
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
+    <div className="app-shell">
+      <header className="topbar">
         <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
+          <p className="eyebrow">HCL Hackathon Sprint 0</p>
+          <h1>Retail Ordering System</h1>
         </div>
-        <button
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+        {user && (
+          <div className="topbar-actions">
+            <div className="user-chip">
+              <span>{user.name}</span>
+              <strong>{user.role}</strong>
+            </div>
+            <button
+              type="button"
+              className={`nav-link ${page === "menu" ? "active" : ""}`}
+              onClick={() => setPage("menu")}
+            >
+              Menu
+            </button>
+            <button
+              type="button"
+              className={`nav-link ${page === "cart" ? "active" : ""}`}
+              onClick={() => setPage("cart")}
+            >
+              Cart ({cartCount})
+            </button>
+            <button
+              type="button"
+              className={`nav-link ${page === "success" ? "active" : ""}`}
+              onClick={() => setPage("success")}
+            >
+              Orders
+            </button>
+            <button type="button" className="ghost-btn" onClick={handleLogout}>
+              Logout
+            </button>
+          </div>
+        )}
+      </header>
 
-      <div className="ticks"></div>
+      <main className="screen-shell">
+        {!user && page === "login" && (
+          <LoginPage
+            onLoginSuccess={persistSession}
+            onSwitchToRegister={() => setPage("register")}
+          />
+        )}
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+        {!user && page === "register" && (
+          <RegisterPage
+            onRegisterSuccess={persistSession}
+            onSwitchToLogin={() => setPage("login")}
+          />
+        )}
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+        {user && page === "menu" && (
+          <MenuPage user={user} cart={cart} onAddToCart={handleAddToCart} />
+        )}
+
+        {user && page === "cart" && (
+          <CartPage
+            user={user}
+            cart={cart}
+            onUpdateQty={handleAddToCart}
+            onOrderPlaced={handleOrderPlaced}
+          />
+        )}
+
+        {user && page === "success" && <SuccessPage lastOrder={lastOrder} />}
+      </main>
+    </div>
+  );
 }
 
-export default App
+export default App;
